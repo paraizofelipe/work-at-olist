@@ -47,11 +47,11 @@ func (h *Handler) CallsHandler(w http.ResponseWriter, r *http.Request) {
 	router := NewRouter(h.Logger)
 	router.AddRoute(
 		`calls\/?$`,
-		http.MethodGet, h.setContext(h.getCall))
+		http.MethodGet, h.setContext(h.getAllCalls))
 
 	router.AddRoute(
 		`calls\/(?P<id>[0-9a-zA-Z\-]+)$`,
-		http.MethodGet, h.setContext(h.getAllCalls))
+		http.MethodGet, h.setContext(h.getCall))
 
 	router.AddRoute(
 		`calls\/?$`,
