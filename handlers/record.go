@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"work-at-olist/storage"
 )
@@ -40,10 +39,6 @@ func (h *Handler) RecordsHandler(w http.ResponseWriter, r *http.Request) {
 		http.MethodGet, h.setContext(h.getAllRecords))
 
 	router.AddRoute(
-		`records\/(?P<id>[0-9a-zA-Z\-]+)$`,
-		http.MethodGet, h.setContext(h.getRecord))
-
-	router.AddRoute(
 		`records\/?$`,
 		http.MethodPost, h.setContext(h.SaveRecord))
 
@@ -55,13 +50,6 @@ func (h *Handler) setContext(next http.HandlerFunc) http.HandlerFunc {
 		ctx := r.Context()
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
-	}
-}
-
-func (h *Handler) getRecord(w http.ResponseWriter, r *http.Request) {
-	_, err := fmt.Fprintf(w, "AllCalls")
-	if err != nil {
-		log.Fatal(err)
 	}
 }
 

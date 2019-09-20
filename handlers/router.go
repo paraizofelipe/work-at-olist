@@ -22,12 +22,6 @@ type Router struct {
 	debug  bool
 }
 
-type contextKey string
-
-func (c contextKey) String() string {
-	return string(c)
-}
-
 func NewRouter(logger *log.Logger) *Router {
 	logger.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 	debug, err := strconv.ParseBool(os.Getenv("DEBUG"))

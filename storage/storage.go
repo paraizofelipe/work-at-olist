@@ -6,6 +6,7 @@ import (
 
 type Datastorer interface {
 	RecordStorer
+	BillStore
 	InitSchema()
 }
 
@@ -24,4 +25,5 @@ func NewDB(dialect, dbName string) (*DB, error) {
 
 func (db *DB) InitSchema() {
 	db.AutoMigrate(&Record{})
+	db.AutoMigrate(&Bill{})
 }

@@ -30,8 +30,8 @@ func main() {
 	http.HandleFunc("/api/records", h.RecordsHandler)
 	http.HandleFunc("/api/records/", h.RecordsHandler)
 
-	//http.HandlerFunc("/api/bill")
-	//http.HandlerFunc("/api/bill")
+	http.HandleFunc("/api/bills", h.BillsHandler)
+	http.HandleFunc("/api/bills/", h.BillsHandler)
 
 	err = http.ListenAndServe(PORT, nil)
 	if err != nil {
