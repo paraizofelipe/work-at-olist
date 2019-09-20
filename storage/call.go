@@ -9,16 +9,17 @@ type CallStorer interface {
 	//GetCall(string) (*Call, error)
 	GetAllCalls() *gorm.DB
 	CreateCall(*Call) error
+	GetCallsByCallId(int) ([]Call, error)
 	//DeleteCall(*Call) error
 }
 
 type Call struct {
-	ID          int
-	Type        string
-	Timestamp   string
-	CallId      int
-	Source      string
-	Destination string
+	Id          int    `json:"id"`
+	Type        string `json:"type"`
+	Timestamp   string `json:"timestamp"`
+	CallId      int    `json:"call_id"`
+	Source      string `json:"source"`
+	Destination string `json:"destination"`
 }
 
 type ValidationMessages map[string]interface{}
@@ -37,33 +38,28 @@ func (c *Call) IsValid() (bool, map[string]interface{}) {
 	var errs = ValidationMessages{}
 	var valid = true
 
+	if c.CallId <= 0 {
+		errs["call_id"] = []string{"invalid [call_id] field value"}
+		valid = false
+	}
+
 	if c.Type == "" {
-		errs["type"] = []string{"type field can't blank"}
-		valid = false
-	}
-
-	if c.Destination == "" {
-		errs["destination"] = []string{"destination field can't blank"}
-		valid = false
-	}
-
-	if c.Source == "" {
-		errs["source"] = []string{"source field can't blank"}
+		errs["type"] = []string{"[type] field can't blank"}
 		valid = false
 	}
 
 	if c.Timestamp == "" {
-		errs["timestamp"] = []string{"source field can't blank"}
+		errs["timestamp"] = []string{"[timestamp] field can't blank"}
 		valid = false
 	}
 
-	if c.Type == "start" && (c.Source == "" || c.Destination == "") {
-		errs["start_call"] = []string{"call start cannot be null"}
+	if c.Type == "start" && (c.Source == "" || !validPhone(c.Source)) {
+		errs["source"] = []string{"invalid [source] field value"}
 		valid = false
 	}
 
-	if c.Type == "start" && (!validPhone(c.Source) || !validPhone(c.Destination)) {
-		errs["start_call"] = []string{"call start cannot be null"}
+	if c.Type == "start" && (c.Destination == "" || !validPhone(c.Destination)) {
+		errs["destination"] = []string{"invalid [destination] field value"}
 		valid = false
 	}
 
@@ -78,6 +74,13 @@ func validPhone(ph string) bool {
 		return false
 	}
 	return true
+}
+
+// TODO Use method to validate call type together with call_id
+func (db *DB) GetCallsByCallId(callId int) ([]Call, error) {
+	var calls []Call
+	err := db.Find(&calls, "call_id = ?", callId).Error
+	return calls, err
 }
 
 func (db *DB) GetAllCalls() *gorm.DB {

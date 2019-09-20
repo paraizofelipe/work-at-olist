@@ -9,20 +9,11 @@ import (
 )
 
 type Call struct {
-	Id          int    `json:"id"`
-	Type        string `json:"type"`
-	Timestamp   string `json:"timestamp"`
-	CallId      int    `json:"call_id"`
-	Source      string `json:"source"`
-	Destination string `json:"destination"`
+	*storage.Call
 }
 
 type errorResponse struct {
 	Errors map[string]interface{} `json:"errors"`
-}
-
-type CallJSON struct {
-	Call `json:"call"`
 }
 
 type CallsJSON struct {
@@ -31,14 +22,13 @@ type CallsJSON struct {
 }
 
 func (h *Handler) buildCallJSON(c *storage.Call) Call {
-	call := Call{
-		Id:          c.ID,
-		Type:        c.Type,
-		CallId:      c.CallId,
-		Source:      c.Source,
-		Destination: c.Destination,
-		Timestamp:   c.Timestamp,
-	}
+	call := Call{}
+	call.Id = c.Id
+	call.Type = c.Type
+	call.CallId = c.CallId
+	call.Source = c.Source
+	call.Destination = c.Destination
+	call.Timestamp = c.Timestamp
 
 	return call
 }
@@ -55,7 +45,7 @@ func (h *Handler) CallsHandler(w http.ResponseWriter, r *http.Request) {
 
 	router.AddRoute(
 		`calls\/?$`,
-		http.MethodPost, h.setContext(h.createCall))
+		http.MethodPost, h.setContext(h.SaveCall))
 
 	router.ServeHTTP(w, r)
 }
@@ -75,7 +65,7 @@ func (h *Handler) getCall(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) createCall(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) SaveCall(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var body struct {
 		Type        string `json:"type"`
@@ -94,16 +84,24 @@ func (h *Handler) createCall(w http.ResponseWriter, r *http.Request) {
 
 	c := storage.NewCall(body.Type, body.Timestamp, body.CallId, body.Source, body.Destination)
 
+	w.Header().Set("Content-Type", "application/json")
 	if valid, errs := c.IsValid(); !valid {
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		errorResponse := errorResponse{Errors: errs}
 
-		err = json.NewEncoder(w).Encode(errorResponse)
-		if err != nil {
+		if err = json.NewEncoder(w).Encode(errorResponse); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		return
+	}
+
+	//TODO validate multiple call terminations
+	if c.Type == "start" {
+		if calls, err := h.DB.GetCallsByCallId(c.CallId); err != nil || len(calls) > 0 {
+			err = fmt.Errorf("call already initialized")
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			return
+		}
 	}
 
 	if err := h.DB.CreateCall(c); err != nil {
@@ -111,15 +109,9 @@ func (h *Handler) createCall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	callJSON := CallJSON{
-		Call: h.buildCallJSON(c),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	err = json.NewEncoder(w).Encode(callJSON)
-	if err != nil {
+	if err = json.NewEncoder(w).Encode(c); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
