@@ -9,7 +9,7 @@ import (
 )
 
 type Call struct {
-	*storage.Call
+	*storage.Record
 }
 
 type errorResponse struct {
@@ -21,7 +21,7 @@ type CallsJSON struct {
 	CallsCount int    `json:"callsCount"`
 }
 
-func (h *Handler) buildCallJSON(c *storage.Call) Call {
+func (h *Handler) buildCallJSON(c *storage.Record) Call {
 	call := Call{}
 	call.Id = c.Id
 	call.Type = c.Type
@@ -33,19 +33,19 @@ func (h *Handler) buildCallJSON(c *storage.Call) Call {
 	return call
 }
 
-func (h *Handler) CallsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RecordsHandler(w http.ResponseWriter, r *http.Request) {
 	router := NewRouter(h.Logger)
 	router.AddRoute(
-		`calls\/?$`,
-		http.MethodGet, h.setContext(h.getAllCalls))
+		`records\/?$`,
+		http.MethodGet, h.setContext(h.getAllRecords))
 
 	router.AddRoute(
-		`calls\/(?P<id>[0-9a-zA-Z\-]+)$`,
-		http.MethodGet, h.setContext(h.getCall))
+		`records\/(?P<id>[0-9a-zA-Z\-]+)$`,
+		http.MethodGet, h.setContext(h.getRecord))
 
 	router.AddRoute(
-		`calls\/?$`,
-		http.MethodPost, h.setContext(h.SaveCall))
+		`records\/?$`,
+		http.MethodPost, h.setContext(h.SaveRecord))
 
 	router.ServeHTTP(w, r)
 }
@@ -58,14 +58,14 @@ func (h *Handler) setContext(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (h *Handler) getCall(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getRecord(w http.ResponseWriter, r *http.Request) {
 	_, err := fmt.Fprintf(w, "AllCalls")
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func (h *Handler) SaveCall(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) SaveRecord(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var body struct {
 		Type        string `json:"type"`
@@ -82,7 +82,7 @@ func (h *Handler) SaveCall(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	c := storage.NewCall(body.Type, body.Timestamp, body.CallId, body.Source, body.Destination)
+	c := storage.NewRecord(body.Type, body.Timestamp, body.CallId, body.Source, body.Destination)
 
 	w.Header().Set("Content-Type", "application/json")
 	if valid, errs := c.IsValid(); !valid {
@@ -97,14 +97,14 @@ func (h *Handler) SaveCall(w http.ResponseWriter, r *http.Request) {
 
 	//TODO validate multiple call terminations
 	if c.Type == "start" {
-		if calls, err := h.DB.GetCallsByCallId(c.CallId); err != nil || len(calls) > 0 {
+		if calls, err := h.DB.GetRecordsByCallId(c.CallId); err != nil || len(calls) > 0 {
 			err = fmt.Errorf("call already initialized")
 			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 			return
 		}
 	}
 
-	if err := h.DB.CreateCall(c); err != nil {
+	if err := h.DB.CreateRecord(c); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -116,11 +116,11 @@ func (h *Handler) SaveCall(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) getAllCalls(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getAllRecords(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var calls []storage.Call
+	var calls []storage.Record
 
-	query := h.DB.GetAllCalls()
+	query := h.DB.GetAllRecords()
 
 	err = query.Find(&calls).Error
 

@@ -5,7 +5,7 @@ import (
 )
 
 type Datastorer interface {
-	CallStorer
+	RecordStorer
 	InitSchema()
 }
 
@@ -23,5 +23,5 @@ func NewDB(dialect, dbName string) (*DB, error) {
 }
 
 func (db *DB) InitSchema() {
-	db.AutoMigrate(&Call{})
+	db.AutoMigrate(&Record{})
 }

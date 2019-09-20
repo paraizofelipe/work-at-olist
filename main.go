@@ -27,8 +27,11 @@ func main() {
 
 	h := handlers.New(db, logger)
 
-	http.HandleFunc("/api/calls", h.CallsHandler)
-	http.HandleFunc("/api/calls/", h.CallsHandler)
+	http.HandleFunc("/api/records", h.RecordsHandler)
+	http.HandleFunc("/api/records/", h.RecordsHandler)
+
+	//http.HandlerFunc("/api/bill")
+	//http.HandlerFunc("/api/bill")
 
 	err = http.ListenAndServe(PORT, nil)
 	if err != nil {

@@ -1,19 +1,18 @@
 package storage
 
 import (
-	"github.com/jinzhu/gorm"
 	"strconv"
+
+	"github.com/jinzhu/gorm"
 )
 
-type CallStorer interface {
-	//GetCall(string) (*Call, error)
-	GetAllCalls() *gorm.DB
-	CreateCall(*Call) error
-	GetCallsByCallId(int) ([]Call, error)
-	//DeleteCall(*Call) error
+type RecordStorer interface {
+	GetAllRecords() *gorm.DB
+	CreateRecord(*Record) error
+	GetRecordsByCallId(int) ([]Record, error)
 }
 
-type Call struct {
+type Record struct {
 	Id          int    `json:"id"`
 	Type        string `json:"type"`
 	Timestamp   string `json:"timestamp"`
@@ -24,8 +23,8 @@ type Call struct {
 
 type ValidationMessages map[string]interface{}
 
-func NewCall(ty string, ti string, ci int, sr string, ds string) *Call {
-	return &Call{
+func NewRecord(ty string, ti string, ci int, sr string, ds string) *Record {
+	return &Record{
 		Type:        ty,
 		Timestamp:   ti,
 		CallId:      ci,
@@ -34,7 +33,7 @@ func NewCall(ty string, ti string, ci int, sr string, ds string) *Call {
 	}
 }
 
-func (c *Call) IsValid() (bool, map[string]interface{}) {
+func (c *Record) IsValid() (bool, map[string]interface{}) {
 	var errs = ValidationMessages{}
 	var valid = true
 
@@ -77,17 +76,17 @@ func validPhone(ph string) bool {
 }
 
 // TODO Use method to validate call type together with call_id
-func (db *DB) GetCallsByCallId(callId int) ([]Call, error) {
-	var calls []Call
+func (db *DB) GetRecordsByCallId(callId int) ([]Record, error) {
+	var calls []Record
 	err := db.Find(&calls, "call_id = ?", callId).Error
 	return calls, err
 }
 
-func (db *DB) GetAllCalls() *gorm.DB {
-	return db.Find(&Call{})
+func (db *DB) GetAllRecords() *gorm.DB {
+	return db.Find(&Record{})
 }
 
-func (db *DB) CreateCall(call *Call) (err error) {
+func (db *DB) CreateRecord(call *Record) (err error) {
 	err = db.Create(&call).Error
 	return
 }
