@@ -3,8 +3,6 @@ package handlers
 import (
 	"log"
 	"work-at-olist/storage"
-
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 type Handler struct {

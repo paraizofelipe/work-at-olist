@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -22,17 +23,38 @@ func (h *Handler) BillsHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) extractBill(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		var mouth, year string
+
 		ctx := r.Context()
+		w.Header().Set("Content-Type", "application/json")
 
 		subscriber, _ := ctx.Value("subscriber").(string)
 
 		p, _ := url.ParseQuery(r.URL.RawQuery)
-		mouth := p["year"][0]
-		year := p["mouth"][0]
+		if val, ok := p["mouth"]; ok {
+			mouth = val[0]
+		}
+		if val, ok := p["year"]; ok {
+			year = val[0]
+		}
 
-		bill, _ := h.DB.GetBillByPeriod(subscriber, mouth, year)
+		bill, err := h.DB.GetBillByPeriod(subscriber, mouth, year)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-		fmt.Println(bill.Subscriber)
+		if bill.Id == 0 {
+			err = fmt.Errorf("bill not found")
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		err = json.NewEncoder(w).Encode(bill)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
@@ -40,11 +62,5 @@ func (h *Handler) extractBill(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func (h *Handler) getBills(w http.ResponseWriter, r *http.Request) {
-	//var err error
-	//
-	//if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-	//	http.Error(w, err.Error(), http.StatusInternalServerError)
-	//}
-	//
-	//w.Header().Set("Content-Type", "application/json")
+
 }

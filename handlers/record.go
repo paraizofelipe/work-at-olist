@@ -36,10 +36,6 @@ func (h *Handler) RecordsHandler(w http.ResponseWriter, r *http.Request) {
 	router := NewRouter(h.Logger)
 	router.AddRoute(
 		`records\/?$`,
-		http.MethodGet, h.setContext(h.getAllRecords))
-
-	router.AddRoute(
-		`records\/?$`,
 		http.MethodPost, h.setContext(h.SaveRecord))
 
 	router.ServeHTTP(w, r)
@@ -70,10 +66,10 @@ func (h *Handler) SaveRecord(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	c := storage.NewRecord(body.Type, body.Timestamp, body.CallId, body.Source, body.Destination)
+	record := storage.NewRecord(body.Type, body.Timestamp, body.CallId, body.Source, body.Destination)
 
 	w.Header().Set("Content-Type", "application/json")
-	if valid, errs := c.IsValid(); !valid {
+	if valid, errs := record.IsValid(); !valid {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		errorResponse := errorResponse{Errors: errs}
 
@@ -83,52 +79,25 @@ func (h *Handler) SaveRecord(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO validate multiple call terminations
-	if c.Type == "start" {
-		if calls, err := h.DB.GetRecordsByCallId(c.CallId); err != nil || len(calls) > 0 {
-			err = fmt.Errorf("call already initialized")
-			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-			return
-		}
-	}
-
-	if err := h.DB.CreateRecord(c); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-
-	if err = json.NewEncoder(w).Encode(c); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func (h *Handler) getAllRecords(w http.ResponseWriter, r *http.Request) {
-	var err error
-	var calls []storage.Record
-
-	query := h.DB.GetAllRecords()
-
-	err = query.Find(&calls).Error
-
-	if err != nil {
+	calls, err := h.DB.GetRecordsByCallId(record.CallId, record.Type)
+	if err != nil || len(calls) > 0 {
+		err = fmt.Errorf("call already registered")
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if len(calls) == 0 {
-		err = json.NewEncoder(w).Encode(CallsJSON{})
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+	if err := h.DB.CreateRecord(record); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(calls)
-	if err != nil {
+	if record.Type == "end" {
+
+	}
+
+	w.WriteHeader(http.StatusCreated)
+
+	if err = json.NewEncoder(w).Encode(record); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
