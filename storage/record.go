@@ -2,14 +2,11 @@ package storage
 
 import (
 	"strconv"
-
-	"github.com/jinzhu/gorm"
 )
 
 type RecordStorer interface {
-	GetAllRecords() *gorm.DB
 	CreateRecord(*Record) error
-	GetRecordsByCallId(int) ([]Record, error)
+	GetRecordsByCallId(int, string) ([]Record, error)
 }
 
 type Record struct {
@@ -76,17 +73,33 @@ func validPhone(ph string) bool {
 }
 
 // TODO Use method to validate call type together with call_id
-func (db *DB) GetRecordsByCallId(callId int) ([]Record, error) {
-	var calls []Record
-	err := db.Find(&calls, "call_id = ?", callId).Error
-	return calls, err
-}
+func (db *DB) GetRecordsByCallId(callId int, callType string) ([]Record, error) {
+	var record Record
+	var records []Record
 
-func (db *DB) GetAllRecords() *gorm.DB {
-	return db.Find(&Record{})
+	rows, err := db.Query(`SELECT * FROM record 
+        WHERE call_id = ?
+        AND type = ?;`, callId, callType)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		if err := rows.Scan(&record.Id, &record.Type, &record.Timestamp, &record.CallId, record.Source, &record.Destination); err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+
+	}
+	return records, nil
 }
 
 func (db *DB) CreateRecord(call *Record) (err error) {
-	err = db.Create(&call).Error
-	return
+	statement, _ := db.Prepare(`INSERT INTO record (type, timestamp, call_id, source, destination) VALUES (?, ?, ?, ?, ?)`)
+
+	if _, err := statement.Exec(call.Type, call.Timestamp, call.CallId, call.Source, call.Destination); err != nil {
+		return err
+	}
+
+	return nil
 }

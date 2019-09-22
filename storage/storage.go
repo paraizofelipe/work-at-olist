@@ -1,21 +1,23 @@
 package storage
 
 import (
-	"github.com/jinzhu/gorm"
+	"database/sql"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Datastorer interface {
 	RecordStorer
 	BillStore
+	CallStorer
 	InitSchema()
 }
 
 type DB struct {
-	*gorm.DB
+	*sql.DB
 }
 
 func NewDB(dialect, dbName string) (*DB, error) {
-	db, err := gorm.Open(dialect, dbName)
+	db, err := sql.Open(dialect, dbName)
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +25,59 @@ func NewDB(dialect, dbName string) (*DB, error) {
 	return &DB{db}, nil
 }
 
+func (db *DB) billSchema() error {
+	statement, _ := db.Prepare(`CREATE TABLE IF NOT EXISTS bill(
+        id INTEGER PRIMARY KEY NOT NULL,
+        subscriber VARCHAR,
+        mouth VARCHAR,
+        year VARCHAR,
+        price FLOAR)
+    `)
+	if _, err := statement.Exec(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *DB) callSchema() error {
+	statement, _ := db.Prepare(`CREATE TABLE IF NOT EXISTS call (
+        id INTEGER PRIMARY KEY NOT NULL,
+        bill_id INTEGER NOT NULL,
+        destionation VARCHAR, 
+        duration VARCHAR,
+        start_date INTEGER,
+        start_time VARCHAR,
+        price FLOAT,
+        FOREIGN KEY(bill_id) REFERENCES bill(id))
+    `)
+
+	if _, err := statement.Exec(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *DB) recordSchema() error {
+	statement, _ := db.Prepare(`CREATE TABLE IF NOT EXISTS record (
+        id INTEGER PRIMARY KEY NOT NULL, 
+        type VARCHAR, 
+        timestamp VARCHAR,
+        call_id INTEGER,
+        source VARCHAR,
+        destination VARCHAR)
+    `)
+	if _, err := statement.Exec(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (db *DB) InitSchema() {
-	db.AutoMigrate(&Record{})
-	db.AutoMigrate(&Bill{})
+	//db.AutoMigrate(&Call{})
+	//db.AutoMigrate(&Record{})
+	//db.AutoMigrate(&Bill{})
+
+	db.billSchema()
+	db.callSchema()
+	db.recordSchema()
 }
