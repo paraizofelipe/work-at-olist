@@ -6,7 +6,8 @@ import (
 
 type RecordStorer interface {
 	CreateRecord(*Record) error
-	GetRecordsByCallId(int, string) ([]Record, error)
+	GetRecordsByCallId(int) ([]Record, error)
+	GetRecordsByType(int, string) ([]Record, error)
 }
 
 type Record struct {
@@ -72,8 +73,26 @@ func validPhone(ph string) bool {
 	return true
 }
 
-// TODO Use method to validate call type together with call_id
-func (db *DB) GetRecordsByCallId(callId int, callType string) ([]Record, error) {
+func (db *DB) GetRecordsByCallId(callId int) ([]Record, error) {
+	var record Record
+	var records []Record
+
+	rows, err := db.Query(`SELECT * FROM record
+        WHERE call_id = ?;`, callId)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		if err := rows.Scan(&record.Id, &record.Type, &record.Timestamp, &record.CallId, &record.Source, &record.Destination); err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
+	return records, nil
+}
+
+func (db *DB) GetRecordsByType(callId int, callType string) ([]Record, error) {
 	var record Record
 	var records []Record
 
@@ -85,7 +104,7 @@ func (db *DB) GetRecordsByCallId(callId int, callType string) ([]Record, error) 
 	}
 
 	for rows.Next() {
-		if err := rows.Scan(&record.Id, &record.Type, &record.Timestamp, &record.CallId, record.Source, &record.Destination); err != nil {
+		if err := rows.Scan(&record.Id, &record.Type, &record.Timestamp, &record.CallId, &record.Source, &record.Destination); err != nil {
 			return nil, err
 		}
 		records = append(records, record)

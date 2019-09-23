@@ -49,6 +49,19 @@ func (h *Handler) setContext(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func (h *Handler) RecordsToCall(rs []storage.Record) error {
+	//t1, err := time.Parse(time.RFC3339, rs[0].Timestamp)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//t2, err := time.Parse(time.RFC3339, rs[1].Timestamp)
+	//if err != nil {
+	//	return err
+	//}
+
+}
+
 func (h *Handler) SaveRecord(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var body struct {
@@ -79,7 +92,7 @@ func (h *Handler) SaveRecord(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	calls, err := h.DB.GetRecordsByCallId(record.CallId, record.Type)
+	calls, err := h.DB.GetRecordsByType(record.CallId, record.Type)
 	if err != nil || len(calls) > 0 {
 		err = fmt.Errorf("call already registered")
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
@@ -92,7 +105,16 @@ func (h *Handler) SaveRecord(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if record.Type == "end" {
+		rs, err := h.DB.GetRecordsByCallId(body.CallId)
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+		}
 
+		h.RecordsToCall(rs)
+		c := storage.NewCall(body.Destination, "", 0, "", 0.0)
+		if err := h.DB.CreateCall(c); err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+		}
 	}
 
 	w.WriteHeader(http.StatusCreated)
