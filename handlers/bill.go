@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"work-at-olist/storage"
 )
 
@@ -24,7 +25,7 @@ func (h *Handler) BillsHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) extractBill(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var err error
-		var mouth, year string
+		var month, year int64
 
 		ctx := r.Context()
 		w.Header().Set("Content-Type", "application/json")
@@ -33,13 +34,19 @@ func (h *Handler) extractBill(next http.HandlerFunc) http.HandlerFunc {
 
 		p, _ := url.ParseQuery(r.URL.RawQuery)
 		if val, ok := p["mouth"]; ok {
-			mouth = val[0]
+			month, err = strconv.ParseInt(val[0], 10, 64)
+			if err != nil {
+				return
+			}
 		}
 		if val, ok := p["year"]; ok {
-			year = val[0]
+			year, err = strconv.ParseInt(val[0], 10, 64)
+			if err != nil {
+				return
+			}
 		}
 
-		bill, err := h.DB.GetBillByPeriod(subscriber, mouth, year)
+		bill, err := h.DB.GetBillByPeriod(subscriber, int(month), int(year))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
