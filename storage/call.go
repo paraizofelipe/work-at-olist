@@ -8,12 +8,12 @@ type Call struct {
 	Id          string  `json:"id"`
 	Destination string  `json:"destination"`
 	Duration    string  `json:"duration"`
-	StartDate   int     `json:"start_date"`
+	StartDate   string  `json:"start_date"`
 	StartTime   string  `json:"start_time"`
 	Price       float64 `json:"price"`
 }
 
-func NewCall(dst string, dur string, sd int, st string, pri float64) *Call {
+func NewCall(dst string, dur string, sd string, st string, pri float64) *Call {
 	return &Call{
 		Destination: dst,
 		Duration:    dur,

@@ -3,33 +3,18 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
+	"time"
 	"work-at-olist/storage"
 )
 
-type Call struct {
+type Record struct {
 	*storage.Record
 }
 
 type errorResponse struct {
 	Errors map[string]interface{} `json:"errors"`
-}
-
-type CallsJSON struct {
-	Calls      []Call `json:"calls"`
-	CallsCount int    `json:"callsCount"`
-}
-
-func (h *Handler) buildCallJSON(c *storage.Record) Call {
-	call := Call{}
-	call.Id = c.Id
-	call.Type = c.Type
-	call.CallId = c.CallId
-	call.Source = c.Source
-	call.Destination = c.Destination
-	call.Timestamp = c.Timestamp
-
-	return call
 }
 
 func (h *Handler) RecordsHandler(w http.ResponseWriter, r *http.Request) {
@@ -49,17 +34,55 @@ func (h *Handler) setContext(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (h *Handler) RecordsToCall(rs []storage.Record) error {
-	//t1, err := time.Parse(time.RFC3339, rs[0].Timestamp)
+func inTimeRange(check time.Time) bool {
+	start := time.Date(check.Year(), check.Month(), check.Day(), 6, 0, 0, 0, time.UTC)
+	end := time.Date(check.Year(), check.Month(), check.Day(), 21, 59, 59, 0, time.UTC)
+
+	return check.After(start) && check.Before(end)
+}
+
+func (h *Handler) CalculateCall(dateStart, dateEnd time.Time) (float64, error) {
+	var hour int
+	var start, end time.Time
+
+	//dateStart, err := time.Parse(time.RFC3339, rs[0].Timestamp)
 	//if err != nil {
-	//	return err
+	//    return 0, err
 	//}
 	//
-	//t2, err := time.Parse(time.RFC3339, rs[1].Timestamp)
+	//dateEnd, err := time.Parse(time.RFC3339, rs[1].Timestamp)
 	//if err != nil {
-	//	return err
+	//    return 0, err
 	//}
 
+	if !inTimeRange(dateStart) {
+		hour = dateStart.Hour()
+		if hour < 6 || hour >= 22 {
+			dateStart = dateStart.AddDate(0, 0, 1)
+		}
+		start = time.Date(dateStart.Year(), dateStart.Month(), dateStart.Day(), 6, 0, 0, 0, time.UTC)
+	} else {
+		start = dateStart
+	}
+
+	if !inTimeRange(dateEnd) {
+		hour = dateEnd.Hour()
+		if hour < 6 {
+			dateEnd = dateEnd.AddDate(0, 0, -1)
+		}
+		end = time.Date(dateEnd.Year(), dateEnd.Month(), dateEnd.Day(), 22, 0, 0, 0, time.UTC)
+	} else {
+		end = dateEnd
+	}
+
+	du := end.Sub(start)
+	x := math.Floor(du.Hours()/24) * (8 * 60)
+	fmt.Println(du.Hours())
+
+	t := float64(int(du.Minutes()) - int(x))
+	rst := math.Round((t*0.09+0.36)*100) / 100
+
+	return rst, nil
 }
 
 func (h *Handler) SaveRecord(w http.ResponseWriter, r *http.Request) {
@@ -110,8 +133,23 @@ func (h *Handler) SaveRecord(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "", http.StatusInternalServerError)
 		}
 
-		h.RecordsToCall(rs)
-		c := storage.NewCall(body.Destination, "", 0, "", 0.0)
+		dateStart, err := time.Parse(time.RFC3339, rs[0].Timestamp)
+		if err != nil {
+			return
+		}
+
+		dateEnd, err := time.Parse(time.RFC3339, rs[1].Timestamp)
+		if err != nil {
+			return
+		}
+
+		cp, err := h.CalculateCall(dateStart, dateEnd)
+		if err != nil {
+			return
+		}
+
+		duration := dateStart.Sub(dateEnd)
+		c := storage.NewCall(body.Destination, duration.String(), dateStart.Format("2006-01-02"), dateStart.Format("3:04:05 PM"), cp)
 		if err := h.DB.CreateCall(c); err != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 		}
