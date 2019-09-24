@@ -5,7 +5,8 @@ type CallStorer interface {
 }
 
 type Call struct {
-	Id          string  `json:"id"`
+	Id          int     `json:"id"`
+	BillId      int     `json:"bill_id"`
 	Destination string  `json:"destination"`
 	Duration    string  `json:"duration"`
 	StartDate   string  `json:"start_date"`
@@ -13,8 +14,9 @@ type Call struct {
 	Price       float64 `json:"price"`
 }
 
-func NewCall(dst string, dur string, sd string, st string, pri float64) *Call {
+func NewCall(bid int, dst string, dur string, sd string, st string, pri float64) *Call {
 	return &Call{
+		BillId:      bid,
 		Destination: dst,
 		Duration:    dur,
 		StartDate:   sd,
@@ -25,10 +27,17 @@ func NewCall(dst string, dur string, sd string, st string, pri float64) *Call {
 
 func (db *DB) CreateCall(call *Call) error {
 	statement, _ := db.Prepare(`INSERT INTO call 
-        (destionation, duration, start_date, start_time, price) 
-        VALUES (?, ?, ?, ?, ?);`)
+        (bill_id, destionation, duration, start_date, start_time, price) 
+        VALUES (?, ?, ?, ?, ?, ?);`)
 
-	if _, err := statement.Exec(call.Destination, call.Duration, call.StartDate, call.StartTime, call.Price); err != nil {
+	if _, err := statement.Exec(
+		call.BillId,
+		call.Destination,
+		call.Duration,
+		call.StartDate,
+		call.StartTime,
+		call.Price); err != nil {
+
 		return err
 	}
 

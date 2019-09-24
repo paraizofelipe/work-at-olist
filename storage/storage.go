@@ -2,12 +2,13 @@ package storage
 
 import (
 	"database/sql"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type Datastorer interface {
 	RecordStorer
-	BillStore
+	BillStorer
 	CallStorer
 	InitSchema()
 }

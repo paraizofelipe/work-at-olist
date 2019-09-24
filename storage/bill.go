@@ -1,25 +1,39 @@
 package storage
 
-type BillStore interface {
+type BillStorer interface {
+	CreateBill(*Bill) (int64, error)
 	GetBill(string) (Bill, error)
-	GetBillByPeriod(string, string, string) (Bill, error)
+	GetBillByPeriod(string, int, int) (Bill, error)
 }
 
 type Bill struct {
 	Id         int     `json:"id"`
 	Subscriber string  `json:"subscriber"`
-	Calls      []Call  `json:"calls"`
-	Mouth      string  `json:"mouth"`
-	Year       string  `json:"year"`
+	Mouth      int     `json:"mouth"`
+	Year       int     `json:"year"`
 	Price      float64 `json:"price"`
 }
 
-func NewBill(sb string, m string, y string) *Bill {
+func NewBill(sb string, m int, y int) *Bill {
 	return &Bill{
 		Subscriber: sb,
 		Mouth:      m,
 		Year:       y,
 	}
+}
+
+func (db *DB) CreateBill(bill *Bill) (int64, error) {
+	statement, _ := db.Prepare(`INSERT INTO bill (subscriber, mouth, year, price) 
+        VALUES (?, ?, ?, ?);`)
+
+	result, err := statement.Exec(bill.Subscriber, bill.Mouth, bill.Year, bill.Price)
+	if err != nil {
+		return 0, err
+	}
+
+	lastId, err := result.LastInsertId()
+
+	return lastId, nil
 }
 
 func (db *DB) GetBill(sb string) (Bill, error) {
@@ -38,10 +52,10 @@ func (db *DB) GetBill(sb string) (Bill, error) {
 	return bill, nil
 }
 
-func (db *DB) GetBillByPeriod(sb string, m string, y string) (Bill, error) {
+func (db *DB) GetBillByPeriod(sb string, m int, y int) (Bill, error) {
 	var bill Bill
 
-	if m == "" || y == "" {
+	if m == 0 || y == 0 {
 		return db.GetBill(sb)
 	}
 
