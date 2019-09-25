@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 	"work-at-olist/storage"
 )
 
@@ -33,7 +34,7 @@ func (h *Handler) extractBill(next http.HandlerFunc) http.HandlerFunc {
 		subscriber, _ := ctx.Value("subscriber").(string)
 
 		p, _ := url.ParseQuery(r.URL.RawQuery)
-		if val, ok := p["mouth"]; ok {
+		if val, ok := p["month"]; ok {
 			month, err = strconv.ParseInt(val[0], 10, 64)
 			if err != nil {
 				return
@@ -44,6 +45,11 @@ func (h *Handler) extractBill(next http.HandlerFunc) http.HandlerFunc {
 			if err != nil {
 				return
 			}
+		}
+
+		now := time.Now()
+		if now.Year() == int(year) && int(now.Month()) == int(month) {
+			month = month - 1
 		}
 
 		bill, err := h.DB.GetBillByPeriod(subscriber, int(month), int(year))
