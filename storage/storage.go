@@ -23,6 +23,9 @@ func NewDB(dialect, dbName string) (*DB, error) {
 		return nil, err
 	}
 
+	db.SetMaxOpenConns(2)
+	db.SetMaxIdleConns(1)
+
 	return &DB{db}, nil
 }
 
@@ -37,6 +40,7 @@ func (db *DB) billSchema() error {
 	if _, err := statement.Exec(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -55,6 +59,7 @@ func (db *DB) callSchema() error {
 	if _, err := statement.Exec(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -70,14 +75,11 @@ func (db *DB) recordSchema() error {
 	if _, err := statement.Exec(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
 func (db *DB) InitSchema() {
-	//db.AutoMigrate(&Call{})
-	//db.AutoMigrate(&Record{})
-	//db.AutoMigrate(&Bill{})
-
 	db.billSchema()
 	db.callSchema()
 	db.recordSchema()

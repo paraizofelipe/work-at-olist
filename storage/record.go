@@ -82,6 +82,7 @@ func (db *DB) GetRecordsByCallId(callId int) ([]Record, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		if err := rows.Scan(&record.Id, &record.Type, &record.Timestamp, &record.CallId, &record.Source, &record.Destination); err != nil {
@@ -102,6 +103,7 @@ func (db *DB) GetRecordsByType(callId int, callType string) ([]Record, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		if err := rows.Scan(&record.Id, &record.Type, &record.Timestamp, &record.CallId, &record.Source, &record.Destination); err != nil {
@@ -114,11 +116,14 @@ func (db *DB) GetRecordsByType(callId int, callType string) ([]Record, error) {
 }
 
 func (db *DB) CreateRecord(call *Record) (err error) {
-	statement, _ := db.Prepare(`INSERT INTO record (type, timestamp, call_id, source, destination) VALUES (?, ?, ?, ?, ?)`)
+	statement, err := db.Prepare(`INSERT INTO record (type, timestamp, call_id, source, destination) VALUES (?, ?, ?, ?, ?)`)
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
 
 	if _, err := statement.Exec(call.Type, call.Timestamp, call.CallId, call.Source, call.Destination); err != nil {
 		return err
 	}
-
 	return nil
 }

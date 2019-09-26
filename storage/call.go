@@ -26,9 +26,13 @@ func NewCall(bid int, dst string, dur string, sd string, st string, pri float64)
 }
 
 func (db *DB) CreateCall(call *Call) error {
-	statement, _ := db.Prepare(`INSERT INTO call 
+	statement, err := db.Prepare(`INSERT INTO call 
         (bill_id, destionation, duration, start_date, start_time, price) 
         VALUES (?, ?, ?, ?, ?, ?);`)
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
 
 	if _, err := statement.Exec(
 		call.BillId,

@@ -75,5 +75,5 @@ func (h *Handler) extractBill(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func (h *Handler) getBills(w http.ResponseWriter, r *http.Request) {
-
+	//fmt.Println("bills")
 }

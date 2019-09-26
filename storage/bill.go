@@ -30,6 +30,7 @@ func (db *DB) CreateBill(bill *Bill) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	defer statement.Close()
 
 	lastId, err := result.LastInsertId()
 
@@ -43,9 +44,10 @@ func (db *DB) GetBill(sb string) (Bill, error) {
 	if err != nil {
 		return bill, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
-		if err := rows.Scan(&bill.Id, &bill.Subscriber, &bill.Mouth, &bill.Price); err != nil {
+		if err := rows.Scan(&bill.Id, &bill.Subscriber, &bill.Mouth, &bill.Year, &bill.Price); err != nil {
 			return bill, err
 		}
 	}
@@ -67,6 +69,7 @@ func (db *DB) GetBillByPeriod(sb string, m int, y int) (Bill, error) {
 	if err != nil {
 		return bill, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		if err := rows.Scan(&bill.Id, &bill.Subscriber, &bill.Mouth, &bill.Price); err != nil {

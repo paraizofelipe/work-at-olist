@@ -17,7 +17,7 @@ func (h *Handler) CalculateCall(dateStart, dateEnd time.Time) (float64, error) {
 
 	if !inTimeRange(dateStart) {
 		hour = dateStart.Hour()
-		if hour < 6 || hour >= 22 {
+		if hour >= 22 {
 			dateStart = dateStart.AddDate(0, 0, 1)
 		}
 		start = time.Date(dateStart.Year(), dateStart.Month(), dateStart.Day(), 6, 0, 0, 0, time.UTC)
@@ -60,7 +60,7 @@ func (h *Handler) SaveCall(rs, re storage.Record) error {
 		return err
 	}
 
-	bill, err := h.DB.GetBillByPeriod(rs.Destination, int(dateEnd.Month()), dateEnd.Year())
+	bill, err := h.DB.GetBillByPeriod(rs.Source, int(dateEnd.Month()), dateEnd.Year())
 	if err != nil {
 		return err
 	}
