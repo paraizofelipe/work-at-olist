@@ -12,7 +12,7 @@ import (
 const (
 	DATABASE string = "work-at-olist.db"
 	DIALECT  string = "sqlite3"
-	PORT     string = ":8989"
+	HOST     string = "0.0.0.0"
 )
 
 func main() {
@@ -33,7 +33,9 @@ func main() {
 	http.HandleFunc("/api/bills", h.BillsHandler)
 	http.HandleFunc("/api/bills/", h.BillsHandler)
 
-	err = http.ListenAndServe(PORT, nil)
+	url := HOST + ":" + os.Getenv("PORT")
+
+	err = http.ListenAndServe(url, nil)
 	if err != nil {
 		logger.Fatal(err)
 	}
