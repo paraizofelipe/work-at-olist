@@ -11,6 +11,7 @@ type Bill struct {
 	Subscriber string  `json:"subscriber"`
 	Mouth      int     `json:"mouth"`
 	Year       int     `json:"year"`
+	Calls      []Call  `json:"calls"`
 	Price      float64 `json:"price"`
 }
 
@@ -50,6 +51,11 @@ func (db *DB) GetBill(sb string) (Bill, error) {
 		if err := rows.Scan(&bill.Id, &bill.Subscriber, &bill.Mouth, &bill.Year, &bill.Price); err != nil {
 			return bill, err
 		}
+
+		bill.Calls, err = db.GetCallsByBillId(bill.Id)
+		if err != nil {
+			return bill, err
+		}
 	}
 	return bill, nil
 }
@@ -72,7 +78,12 @@ func (db *DB) GetBillByPeriod(sb string, m int, y int) (Bill, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		if err := rows.Scan(&bill.Id, &bill.Subscriber, &bill.Mouth, &bill.Price); err != nil {
+		if err := rows.Scan(&bill.Id, &bill.Subscriber, &bill.Mouth, &bill.Year, &bill.Price); err != nil {
+			return bill, err
+		}
+
+		bill.Calls, err = db.GetCallsByBillId(bill.Id)
+		if err != nil {
 			return bill, err
 		}
 	}
