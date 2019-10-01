@@ -8,9 +8,8 @@ ADD ./ ./"${app}"
 RUN apk add --no-cache --virtual git gcc g++ musl-dev
 RUN (cd $app;go mod tidy;go mod vendor;go build -a -ldflags '-linkmode external -extldflags "-static"' -o ${app} .)
 
-FROM scratch
+FROM alpine
 ENV app="olist"
-EXPOSE 80
 COPY --from=builder /go/src/"${app}"/"${app}" /"${app}"
-ENTRYPOINT [ "/olist"]
-CMD [""]
+
+CMD ["/olist"]
