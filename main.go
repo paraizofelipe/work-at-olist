@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -33,7 +34,9 @@ func main() {
 	http.HandleFunc("/api/bills", h.BillsHandler)
 	http.HandleFunc("/api/bills/", h.BillsHandler)
 
-	url := HOST + ":" + os.Getenv("PORT")
+	url := fmt.Sprintf("%s:%s", HOST, os.Getenv("PORT"))
+
+	log.Printf("🚀 Server listening in %s 🚀", url)
 
 	err = http.ListenAndServe(url, nil)
 	if err != nil {
