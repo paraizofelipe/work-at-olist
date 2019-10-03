@@ -2,7 +2,7 @@ DOCKER_IMAGE=work-at-olist_img
 HEROKU_APP=olist-call
 
 test: ;
-	go test cover ./... -count=1 -v
+	go test -v -cover ./... -count=1
 
 dk-run: ;
 	docker run --name $(HEROKU_APP) -p 80:8989 -e PORT=8989 $(DOCKER_IMAGE)
