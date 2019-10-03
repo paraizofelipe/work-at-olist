@@ -4,6 +4,7 @@ type BillStorer interface {
 	CreateBill(*Bill) (int64, error)
 	GetBill(string) (Bill, error)
 	GetBillByPeriod(string, int, int) (Bill, error)
+	ChangePrice(int, float64) error
 }
 
 type Bill struct {
@@ -24,8 +25,11 @@ func NewBill(sb string, m int, y int) *Bill {
 }
 
 func (db *DB) CreateBill(bill *Bill) (int64, error) {
-	statement, _ := db.Prepare(`INSERT INTO bill (subscriber, mouth, year, price) 
+	statement, err := db.Prepare(`INSERT INTO bill (subscriber, mouth, year, price) 
         VALUES (?, ?, ?, ?);`)
+	if err != nil {
+		return 0, err
+	}
 
 	result, err := statement.Exec(bill.Subscriber, bill.Mouth, bill.Year, bill.Price)
 	if err != nil {
@@ -36,6 +40,21 @@ func (db *DB) CreateBill(bill *Bill) (int64, error) {
 	lastId, err := result.LastInsertId()
 
 	return lastId, nil
+}
+
+func (db *DB) ChangePrice(id int, price float64) error {
+	statement, err := db.Prepare(`UPDATE bill SET price = ? WHERE id = ?`)
+	if err != nil {
+		return err
+	}
+
+	_, err = statement.Exec(price, id)
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+
+	return nil
 }
 
 func (db *DB) GetBill(sb string) (Bill, error) {
