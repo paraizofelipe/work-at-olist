@@ -74,6 +74,11 @@ func (h *Handler) SaveCall(rs, re storage.Record) error {
 		if err := h.DB.CreateCall(c); err != nil {
 			return err
 		}
+		err := h.DB.ChangePrice(bill.Id, bill.Price+cc)
+		if err != nil {
+			return err
+		}
+
 	} else {
 		b := storage.NewBill(rs.Source, int(dateEnd.Month()), dateEnd.Year())
 		bid, err := h.DB.CreateBill(b)
