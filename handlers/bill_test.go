@@ -19,3 +19,33 @@ func init() {
 	db.InitSchema()
 	h = New(db, logger)
 }
+
+func TestGetBills() {
+	type QueryString struct {
+		Subscriber string
+		Month      string
+		Year       string
+	}
+
+	type Expect struct {
+		Id int
+	}
+
+	tt := []struct {
+		in     QueryString
+		expect Bill
+	}{
+		{
+			QueryString{
+				Subscriber: "",
+				Month:      "",
+				Year:       "",
+			},
+			Bill{},
+		},
+	}
+
+	for _, test := range tt {
+
+	}
+}
