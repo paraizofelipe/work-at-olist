@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -18,12 +17,12 @@ func (h *Handler) BillsHandler(w http.ResponseWriter, r *http.Request) {
 	router := NewRouter(h.Logger)
 	router.AddRoute(
 		`bills\/(?P<subscriber>[0-9]+)$`,
-		http.MethodGet, h.extractBill(h.getBills))
+		http.MethodGet, h.getBills())
 
 	router.ServeHTTP(w, r)
 }
 
-func (h *Handler) extractBill(next http.HandlerFunc) http.HandlerFunc {
+func (h *Handler) getBills() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var err error
 		var month, year int64
@@ -37,12 +36,14 @@ func (h *Handler) extractBill(next http.HandlerFunc) http.HandlerFunc {
 		if val, ok := p["month"]; ok {
 			month, err = strconv.ParseInt(val[0], 10, 64)
 			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}
 		if val, ok := p["year"]; ok {
 			year, err = strconv.ParseInt(val[0], 10, 64)
 			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}
@@ -59,8 +60,7 @@ func (h *Handler) extractBill(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		if bill.Id == 0 {
-			err = fmt.Errorf("bill not found")
-			http.Error(w, err.Error(), http.StatusNotFound)
+			http.Error(w, "bill not found", http.StatusNotFound)
 			return
 		}
 
@@ -70,10 +70,5 @@ func (h *Handler) extractBill(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
 	}
-}
-
-func (h *Handler) getBills(w http.ResponseWriter, r *http.Request) {
-	//fmt.Println("bills")
 }
