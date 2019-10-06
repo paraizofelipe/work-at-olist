@@ -5,6 +5,11 @@ import (
 	"work-at-olist/storage"
 )
 
+type ErrorResponse struct {
+	Status int
+	Errors map[string]interface{} `json:"errors"`
+}
+
 type Handler struct {
 	DB     storage.Datastorer
 	Logger *log.Logger

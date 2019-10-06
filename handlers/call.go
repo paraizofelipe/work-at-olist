@@ -11,11 +11,18 @@ type Call struct {
 	*storage.Call
 }
 
-func (h *Handler) CalculateCall(dateStart, dateEnd time.Time) (float64, error) {
+func (h *Handler) callInTimeRange(check time.Time) bool {
+	start := time.Date(check.Year(), check.Month(), check.Day(), 5, 59, 59, 0, time.UTC)
+	end := time.Date(check.Year(), check.Month(), check.Day(), 22, 1, 0, 0, time.UTC)
+
+	return check.After(start) && check.Before(end)
+}
+
+func (h *Handler) calculateCallTime(dateStart, dateEnd time.Time) (float64, error) {
 	var hour int
 	var start, end time.Time
 
-	if !inTimeRange(dateStart) {
+	if !h.callInTimeRange(dateStart) {
 		hour = dateStart.Hour()
 		if hour >= 22 {
 			dateStart = dateStart.AddDate(0, 0, 1)
@@ -25,7 +32,7 @@ func (h *Handler) CalculateCall(dateStart, dateEnd time.Time) (float64, error) {
 		start = dateStart
 	}
 
-	if !inTimeRange(dateEnd) {
+	if !h.callInTimeRange(dateEnd) {
 		hour = dateEnd.Hour()
 		if hour < 6 {
 			dateEnd = dateEnd.AddDate(0, 0, -1)
@@ -55,7 +62,7 @@ func (h *Handler) SaveCall(rs, re storage.Record) error {
 		return err
 	}
 
-	cc, err := h.CalculateCall(dateStart, dateEnd)
+	cc, err := h.calculateCallTime(dateStart, dateEnd)
 	if err != nil {
 		return err
 	}
@@ -87,6 +94,12 @@ func (h *Handler) SaveCall(rs, re storage.Record) error {
 		}
 		c := storage.NewCall(int(bid), rs.Destination, duration.String(), dateStart.Format("2006-01-02"), startTime, cc)
 		if err := h.DB.CreateCall(c); err != nil {
+			return err
+		}
+
+		//TODO set price of bill before after create
+		err = h.DB.ChangePrice(int(bid), bill.Price+cc)
+		if err != nil {
 			return err
 		}
 	}

@@ -3,31 +3,117 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"time"
+	"strconv"
 	"work-at-olist/storage"
 )
 
-type errorResponse struct {
-	Errors map[string]interface{} `json:"errors"`
+type ValidationMessages map[string]interface{}
+
+func (h *Handler) validateRecord(r *storage.Record) (bool, ValidationMessages) {
+	var errs = ValidationMessages{}
+	var valid = true
+
+	if r.CallId <= 0 {
+		errs["call_id"] = []string{"invalid [call_id] field value"}
+		valid = false
+	}
+
+	if r.Type == "" {
+		errs["type"] = []string{"[type] field can't blank"}
+		valid = false
+	}
+
+	if r.Timestamp == "" {
+		errs["timestamp"] = []string{"[timestamp] field can't blank"}
+		valid = false
+	}
+
+	if r.Type == "start" && (r.Source == "" || !h.validatePhone(r.Source)) {
+		errs["source"] = []string{"invalid [source] field value"}
+		valid = false
+	}
+
+	if r.Type == "start" && (r.Destination == "" || !h.validatePhone(r.Destination)) {
+		errs["destination"] = []string{"invalid [destination] field value"}
+		valid = false
+	}
+
+	return valid, errs
+}
+
+func (h *Handler) validatePhone(ph string) bool {
+	if _, err := strconv.Atoi(ph); err != nil {
+		return false
+	}
+	if len(ph) > 11 || len(ph) < 10 {
+		return false
+	}
+	return true
+}
+
+func (h *Handler) validateRecordExists(r *storage.Record) (bool, error) {
+	calls, err := h.DB.GetRecordsByType(r.CallId, r.Type)
+	if err != nil || len(calls) > 0 {
+		return false, err
+	}
+	return true, nil
 }
 
 func (h *Handler) RecordsHandler(w http.ResponseWriter, r *http.Request) {
 	router := NewRouter(h.Logger)
 	router.AddRoute(
 		`records\/?$`,
-		http.MethodPost, h.SaveRecord())
+		http.MethodPost, h.postRecord())
 
 	router.ServeHTTP(w, r)
 }
 
-func inTimeRange(check time.Time) bool {
-	start := time.Date(check.Year(), check.Month(), check.Day(), 5, 59, 59, 0, time.UTC)
-	end := time.Date(check.Year(), check.Month(), check.Day(), 22, 1, 0, 0, time.UTC)
+func (h *Handler) SaveRecord(record *storage.Record) ErrorResponse {
+	respErr := ValidationMessages{}
 
-	return check.After(start) && check.Before(end)
+	if valid, errs := h.validateRecord(record); !valid {
+		respErr = errs
+		return ErrorResponse{http.StatusUnprocessableEntity, respErr}
+	}
+
+	if valid, err := h.validateRecordExists(record); err != nil || !valid {
+		respErr["msg"] = "call already registered"
+		return ErrorResponse{http.StatusUnprocessableEntity, respErr}
+	}
+
+	if record.Type == "end" {
+		rs, err := h.DB.GetRecordsByCallId(record.CallId)
+		if err != nil {
+			respErr["msg"] = "failed to register call"
+			return ErrorResponse{http.StatusInternalServerError, respErr}
+		}
+
+		if len(rs) < 1 {
+			respErr["msg"] = "call not started"
+			return ErrorResponse{http.StatusUnprocessableEntity, respErr}
+		}
+
+		if err := h.DB.CreateRecord(record); err != nil {
+			respErr["msg"] = err.Error()
+			return ErrorResponse{http.StatusInternalServerError, respErr}
+		}
+
+		err = h.SaveCall(rs[0], *record)
+		if err != nil {
+			respErr["msg"] = err.Error()
+			return ErrorResponse{http.StatusInternalServerError, respErr}
+		}
+	} else {
+		if err := h.DB.CreateRecord(record); err != nil {
+			respErr["msg"] = err.Error()
+			return ErrorResponse{http.StatusInternalServerError, respErr}
+		}
+	}
+
+	return ErrorResponse{Errors: respErr}
 }
 
-func (h *Handler) SaveRecord() http.HandlerFunc {
+func (h *Handler) postRecord() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var err error
 		var body struct {
@@ -38,7 +124,6 @@ func (h *Handler) SaveRecord() http.HandlerFunc {
 			Destination string `json:"destination"`
 		}
 
-		ctx := r.Context()
 		w.Header().Set("Content-Type", "application/json")
 
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -50,44 +135,12 @@ func (h *Handler) SaveRecord() http.HandlerFunc {
 
 		record := storage.NewRecord(body.Type, body.Timestamp, body.CallId, body.Source, body.Destination)
 
-		w.Header().Set("Content-Type", "application/json")
-		if valid, errs := record.IsValid(); !valid {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			errorResponse := errorResponse{Errors: errs}
-
-			if err = json.NewEncoder(w).Encode(errorResponse); err != nil {
+		if errs := h.SaveRecord(record); errs.Status != 0 {
+			w.WriteHeader(errs.Status)
+			if err = json.NewEncoder(w).Encode(errs); err != nil {
 				http.Error(w, "failed to register call", http.StatusInternalServerError)
 			}
 			return
-		}
-
-		calls, err := h.DB.GetRecordsByType(record.CallId, record.Type)
-		if err != nil || len(calls) > 0 {
-			http.Error(w, "call already registered", http.StatusUnprocessableEntity)
-			return
-		}
-
-		if err := h.DB.CreateRecord(record); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		if record.Type == "end" {
-			rs, err := h.DB.GetRecordsByCallId(body.CallId)
-			if err != nil {
-				http.Error(w, "failed to register call", http.StatusInternalServerError)
-				return
-			}
-
-			if len(rs) < 2 {
-				http.Error(w, "call not started", http.StatusUnprocessableEntity)
-				return
-			}
-
-			err = h.SaveCall(rs[0], rs[1])
-			if err != nil {
-				return
-			}
 		}
 
 		w.WriteHeader(http.StatusCreated)
@@ -95,7 +148,5 @@ func (h *Handler) SaveRecord() http.HandlerFunc {
 		if err = json.NewEncoder(w).Encode(record); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-
-		r = r.WithContext(ctx)
 	}
 }
