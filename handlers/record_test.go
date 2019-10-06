@@ -2,104 +2,110 @@ package handlers
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
-	"io"
-	"log"
 	"net/http"
-	"net/http/httptest"
-	"os"
 	"testing"
-	"time"
 	"work-at-olist/storage"
 )
 
-var (
-	h       *Handler
-	DB      *sql.DB
-	records []*storage.Record
-)
-
-func makeRequest(t *testing.T, method string, url string, body io.Reader, header http.Header) *httptest.ResponseRecorder {
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if header != nil {
-		req.Header = header
-	}
-
-	var recorder = httptest.NewRecorder()
-	h.RecordsHandler(recorder, req)
-
-	return recorder
-}
-
-func init() {
-	logger := log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
-
-	db, err := storage.NewDB("sqlite3", ":memory:")
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	DB = db.DB
-
-	db.InitSchema()
-	h = New(db, logger)
-}
-
-func TestInTimeRange(t *testing.T) {
+func TestRecordsHandler_ValidPhone(t *testing.T) {
 	tt := []struct {
-		in     time.Time
+		in     string
 		expect bool
 	}{
-		{
-			time.Date(2019, 10, 03, 6, 0, 0, 0, time.UTC),
-			true,
-		},
-		{
-			time.Date(2019, 10, 03, 6, 1, 0, 0, time.UTC),
-			true,
-		},
-		{
-			time.Date(2019, 10, 03, 16, 10, 0, 0, time.UTC),
-			true,
-		},
-		{
-			time.Date(2019, 10, 03, 15, 10, 0, 0, time.UTC),
-			true,
-		},
-		{
-			time.Date(2019, 10, 03, 23, 10, 0, 0, time.UTC),
-			false,
-		},
-		{
-			time.Date(2019, 10, 03, 22, 0, 0, 0, time.UTC),
-			true,
-		},
-		{
-			time.Date(2019, 10, 03, 22, 1, 0, 0, time.UTC),
-			false,
-		},
-		{
-			time.Date(2019, 10, 03, 04, 0, 0, 0, time.UTC),
-			false,
-		},
-		{
-			time.Date(2019, 10, 03, 05, 59, 0, 0, time.UTC),
-			false,
-		},
+		{"4199999999", true},
+		{"", false},
+		{"99999999", false},
+		{"419", false},
+		{"99999", false},
+		{"419999999999999", false},
+		{"41", false},
 	}
 
 	for _, test := range tt {
-		if valid := inTimeRange(test.in); valid != test.expect {
-			t.Errorf("inTimeRange %v failed expected: %v, received: %v", test.in, test.expect, valid)
+		valid := h.validatePhone(test.in)
+		if valid != test.expect {
+			t.Errorf("validPhone failed expected: %t, received: %t", test.expect, valid)
 		}
 	}
 }
 
-func TestRecordsHandler_SaveRecord(t *testing.T) {
+func TestRecordsHandler_IsValid(t *testing.T) {
+	tt := []struct {
+		in     *storage.Record
+		expect bool
+	}{
+		{
+			&storage.Record{
+				Id:          0,
+				Type:        "start",
+				Timestamp:   "2016-02-29T14:00:00Z",
+				CallId:      1,
+				Source:      "4199999999",
+				Destination: "4288888888",
+			}, true,
+		},
+		{
+			&storage.Record{
+				Id:          0,
+				Type:        "start",
+				Timestamp:   "2016-02-29T14:00:00Z",
+				CallId:      0,
+				Source:      "4199999999",
+				Destination: "4288888888",
+			}, false,
+		},
+		{
+			&storage.Record{
+				Id:          0,
+				Type:        "",
+				Timestamp:   "2016-02-29T14:00:00Z",
+				CallId:      1,
+				Source:      "4199999999",
+				Destination: "4288888888",
+			}, false,
+		},
+		{
+			&storage.Record{
+				Id:          0,
+				Type:        "start",
+				Timestamp:   "",
+				CallId:      1,
+				Source:      "4199999999",
+				Destination: "4288888888",
+			}, false,
+		},
+		{
+			&storage.Record{
+				Id:          0,
+				Type:        "start",
+				Timestamp:   "2016-02-29T14:00:00Z",
+				CallId:      1,
+				Source:      "",
+				Destination: "4288888888",
+			}, false,
+		},
+		{
+			&storage.Record{
+				Id:          0,
+				Type:        "start",
+				Timestamp:   "2016-02-29T14:00:00Z",
+				CallId:      1,
+				Source:      "4199999999",
+				Destination: "",
+			}, false,
+		},
+	}
+
+	for _, test := range tt {
+		valid, _ := h.validateRecord(test.in)
+		if valid != test.expect {
+			t.Errorf("IsValid failed expected: %t, received: %t", test.expect, valid)
+		}
+	}
+}
+
+func TestRecordsHandler_postRecord(t *testing.T) {
 
 	tt := []struct {
 		in     storage.Record
@@ -135,6 +141,15 @@ func TestRecordsHandler_SaveRecord(t *testing.T) {
 				Source:      "4199999999",
 				Destination: "4288888888",
 			}, http.StatusCreated,
+		},
+		{
+			storage.Record{
+				Type:        "start",
+				Timestamp:   "2016-02-29T15:00:00Z",
+				CallId:      2,
+				Source:      "4199999999",
+				Destination: "4288888888",
+			}, http.StatusUnprocessableEntity,
 		},
 		{
 			storage.Record{
