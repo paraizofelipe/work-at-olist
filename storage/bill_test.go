@@ -24,7 +24,7 @@ func TestNewBill(t *testing.T) {
 			},
 			Bill{
 				Subscriber: "4199999999",
-				Mouth:      10,
+				Month:      10,
 				Year:       2019,
 			},
 		},

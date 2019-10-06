@@ -10,7 +10,7 @@ type BillStorer interface {
 type Bill struct {
 	Id         int     `json:"id"`
 	Subscriber string  `json:"subscriber"`
-	Mouth      int     `json:"mouth"`
+	Month      int     `json:"month"`
 	Year       int     `json:"year"`
 	Calls      []Call  `json:"calls"`
 	Price      float64 `json:"price"`
@@ -19,19 +19,19 @@ type Bill struct {
 func NewBill(sb string, m int, y int) *Bill {
 	return &Bill{
 		Subscriber: sb,
-		Mouth:      m,
+		Month:      m,
 		Year:       y,
 	}
 }
 
 func (db *DB) CreateBill(bill *Bill) (int64, error) {
-	statement, err := db.Prepare(`INSERT INTO bill (subscriber, mouth, year, price) 
+	statement, err := db.Prepare(`INSERT INTO bill (subscriber, month, year, price) 
         VALUES (?, ?, ?, ?);`)
 	if err != nil {
 		return 0, err
 	}
 
-	result, err := statement.Exec(bill.Subscriber, bill.Mouth, bill.Year, bill.Price)
+	result, err := statement.Exec(bill.Subscriber, bill.Month, bill.Year, bill.Price)
 	if err != nil {
 		return 0, err
 	}
@@ -67,7 +67,7 @@ func (db *DB) GetBill(sb string) (Bill, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		if err := rows.Scan(&bill.Id, &bill.Subscriber, &bill.Mouth, &bill.Year, &bill.Price); err != nil {
+		if err := rows.Scan(&bill.Id, &bill.Subscriber, &bill.Month, &bill.Year, &bill.Price); err != nil {
 			return bill, err
 		}
 
@@ -88,7 +88,7 @@ func (db *DB) GetBillByPeriod(sb string, m int, y int) (Bill, error) {
 
 	rows, err := db.Query(`SELECT * FROM bill 
         WHERE subscriber = ?
-        AND mouth = ? 
+        AND month = ? 
         AND year = ?
         LIMIT 1;`, sb, m, y)
 	if err != nil {
@@ -97,7 +97,7 @@ func (db *DB) GetBillByPeriod(sb string, m int, y int) (Bill, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		if err := rows.Scan(&bill.Id, &bill.Subscriber, &bill.Mouth, &bill.Year, &bill.Price); err != nil {
+		if err := rows.Scan(&bill.Id, &bill.Subscriber, &bill.Month, &bill.Year, &bill.Price); err != nil {
 			return bill, err
 		}
 

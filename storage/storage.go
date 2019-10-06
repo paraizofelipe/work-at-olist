@@ -33,7 +33,7 @@ func (db *DB) billSchema() error {
 	statement, _ := db.Prepare(`CREATE TABLE IF NOT EXISTS bill(
         id INTEGER PRIMARY KEY NOT NULL,
         subscriber VARCHAR,
-        mouth VARCHAR,
+        month VARCHAR,
         year VARCHAR,
         price FLOAR)
     `)
