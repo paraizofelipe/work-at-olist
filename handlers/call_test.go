@@ -1,72 +1,62 @@
 package handlers
 
 import (
-	"log"
-	"os"
 	"testing"
 	"time"
 	"work-at-olist/storage"
 )
 
-func init() {
-	logger := log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
-
-	db, err := storage.NewDB("sqlite3", ":memory:")
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	DB = db.DB
-
-	db.InitSchema()
-	h = New(db, logger)
-}
-
-func TestSaveCall(t *testing.T) {
+func TestCallHandler_validateCallTimeRange(t *testing.T) {
 	tt := []struct {
-		in     [2]storage.Record
-		expect error
+		in     time.Time
+		expect bool
 	}{
 		{
-			[2]storage.Record{
-				{
-					Source:      "4199999999",
-					Destination: "4288888888",
-					Timestamp:   "2016-02-29T14:00:00Z",
-				},
-				{
-					Source:      "4199999999",
-					Destination: "4288888888",
-					Timestamp:   "2016-02-29T14:00:00Z",
-				},
-			},
-			nil,
+			time.Date(2019, 10, 03, 6, 0, 0, 0, time.UTC),
+			true,
 		},
 		{
-			[2]storage.Record{
-				{
-					Source:      "4199999999",
-					Destination: "",
-					Timestamp:   "2016-02-29T14:00:00Z",
-				},
-				{
-					Source:      "4199999999",
-					Destination: "",
-					Timestamp:   "2016-03-01T14:00:00Z",
-				},
-			},
-			nil,
+			time.Date(2019, 10, 03, 6, 1, 0, 0, time.UTC),
+			true,
+		},
+		{
+			time.Date(2019, 10, 03, 16, 10, 0, 0, time.UTC),
+			true,
+		},
+		{
+			time.Date(2019, 10, 03, 15, 10, 0, 0, time.UTC),
+			true,
+		},
+		{
+			time.Date(2019, 10, 03, 23, 10, 0, 0, time.UTC),
+			false,
+		},
+		{
+			time.Date(2019, 10, 03, 22, 0, 0, 0, time.UTC),
+			true,
+		},
+		{
+			time.Date(2019, 10, 03, 22, 1, 0, 0, time.UTC),
+			false,
+		},
+		{
+			time.Date(2019, 10, 03, 04, 0, 0, 0, time.UTC),
+			false,
+		},
+		{
+			time.Date(2019, 10, 03, 05, 59, 0, 0, time.UTC),
+			false,
 		},
 	}
 
 	for _, test := range tt {
-		if err := h.SaveCall(test.in[0], test.in[1]); err != test.expect {
-			t.Errorf("SaveCall %v failed expected: %v, received: %v", test.in, test.expect, err)
+		if valid := h.callInTimeRange(test.in); valid != test.expect {
+			t.Errorf("callInTimeRange %v failed expected: %v, received: %v", test.in, test.expect, valid)
 		}
 	}
 }
 
-func TestCalculateCall(t *testing.T) {
+func TestCallHandler_calculateCall(t *testing.T) {
 	tt := []struct {
 		in     [2]time.Time
 		expect float64
@@ -109,12 +99,56 @@ func TestCalculateCall(t *testing.T) {
 	}
 
 	for _, test := range tt {
-		price, err := h.CalculateCall(test.in[0], test.in[1])
+		price, err := h.calculateCallTime(test.in[0], test.in[1])
 		if err != nil {
 			t.Errorf(err.Error())
 		}
 		if price != test.expect {
-			t.Errorf("CalculateCall %v failed expected: %f, received: %f", test.in, test.expect, price)
+			t.Errorf("calculateCallTime %v failed expected: %f, received: %f", test.in, test.expect, price)
+		}
+	}
+}
+
+func TestCallHandler_SaveCall(t *testing.T) {
+	tt := []struct {
+		in     [2]storage.Record
+		expect error
+	}{
+		{
+			[2]storage.Record{
+				{
+					Source:      "4199999999",
+					Destination: "4288888888",
+					Timestamp:   "2016-02-29T14:00:00Z",
+				},
+				{
+					Source:      "4199999999",
+					Destination: "4288888888",
+					Timestamp:   "2016-02-29T14:00:00Z",
+				},
+			},
+			nil,
+		},
+		{
+			[2]storage.Record{
+				{
+					Source:      "4199999999",
+					Destination: "",
+					Timestamp:   "2016-02-29T14:00:00Z",
+				},
+				{
+					Source:      "4199999999",
+					Destination: "",
+					Timestamp:   "2016-03-01T14:00:00Z",
+				},
+			},
+			nil,
+		},
+	}
+
+	for _, test := range tt {
+		if err := h.SaveCall(test.in[0], test.in[1]); err != test.expect {
+			t.Errorf("SaveCall %v failed expected: %v, received: %v", test.in, test.expect, err)
 		}
 	}
 }
