@@ -5,7 +5,7 @@ type CallStorer interface {
 }
 
 type Call struct {
-	Id          int     `json:"id"`
+	Id          int     `json:"-"`
 	BillId      int     `json:"bill_id"`
 	Destination string  `json:"destination"`
 	Duration    string  `json:"duration"`

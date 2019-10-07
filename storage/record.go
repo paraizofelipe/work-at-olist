@@ -7,12 +7,12 @@ type RecordStorer interface {
 }
 
 type Record struct {
-	Id          int    `json:"id"`
+	Id          int    `json:"-"`
 	Type        string `json:"type"`
 	Timestamp   string `json:"timestamp"`
 	CallId      int    `json:"call_id"`
-	Source      string `json:"source"`
-	Destination string `json:"destination"`
+	Source      string `json:"source,omitempty"`
+	Destination string `json:"destination,omitempty"`
 }
 
 func NewRecord(ty string, ti string, ci int, sr string, ds string) *Record {

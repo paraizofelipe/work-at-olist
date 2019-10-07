@@ -8,7 +8,7 @@ type BillStorer interface {
 }
 
 type Bill struct {
-	Id         int     `json:"id"`
+	Id         int     `json:"-"`
 	Subscriber string  `json:"subscriber"`
 	Month      int     `json:"month"`
 	Year       int     `json:"year"`
@@ -16,11 +16,12 @@ type Bill struct {
 	Price      float64 `json:"price"`
 }
 
-func NewBill(sb string, m int, y int) *Bill {
+func NewBill(sb string, m int, y int, p float64) *Bill {
 	return &Bill{
 		Subscriber: sb,
 		Month:      m,
 		Year:       y,
+		Price:      p,
 	}
 }
 
