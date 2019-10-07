@@ -62,6 +62,55 @@ Run with Makefile:
     make run
 ```
 
+# API
+
+## POST - /api/records
+
+### Body of start requests
+
+```json
+{
+	"type": "start",
+	"timestamp": "2019-10-06T05:00:00Z",
+	"call_id": 1,
+	"source": "4199999999",
+	"destination": "4188888888"
+}
+```
+
+### Body of end requests
+
+```json
+{
+	"type": "end",
+	"timestamp": "2019-10-06T06:00:00Z",
+	"call_id": 1
+}
+```
+
+### Body of response
+
+**Status**: 201
+
+```json
+{
+    "message": "record successfully saved"
+}
+```
+
+**Status**: 422
+
+```json
+{
+    "error": "..."
+}
+```
+
+## GET - /api/bills/:subscriber?month=1&year=2019
+
+
+
+
 # Built With
 
 [go](https://golang.org/) - The GO programing language.
