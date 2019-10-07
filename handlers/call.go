@@ -90,19 +90,13 @@ func (h *Handler) SaveCall(rs, re storage.Record) error {
 		}
 
 	} else {
-		b := storage.NewBill(rs.Source, int(dateEnd.Month()), dateEnd.Year())
+		b := storage.NewBill(rs.Source, int(dateEnd.Month()), dateEnd.Year(), bill.Price+cc)
 		bid, err := h.DB.CreateBill(b)
 		if err != nil {
 			return err
 		}
 		c := storage.NewCall(int(bid), rs.Destination, duration.String(), dateStart.Format("2006-01-02"), startTime, cc)
 		if err := h.DB.CreateCall(c); err != nil {
-			return err
-		}
-
-		//TODO set price of bill after create
-		err = h.DB.ChangePrice(int(bid), bill.Price+cc)
-		if err != nil {
 			return err
 		}
 	}

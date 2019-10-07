@@ -119,7 +119,7 @@ func TestCallHandler_SaveCall(t *testing.T) {
 				{
 					Source:      "4199999999",
 					Destination: "4288888888",
-					Timestamp:   "2016-02-29T14:00:00Z",
+					Timestamp:   "2016-02-28T14:00:00Z",
 				},
 				{
 					Source:      "4199999999",

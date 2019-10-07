@@ -26,12 +26,13 @@ func TestNewBill(t *testing.T) {
 				Subscriber: "4199999999",
 				Month:      10,
 				Year:       2019,
+				Price:      0,
 			},
 		},
 	}
 
 	for _, test := range tt {
-		bill := NewBill(test.in.Sb, test.in.M, test.in.Y)
+		bill := NewBill(test.in.Sb, test.in.M, test.in.Y, 0)
 		if !reflect.DeepEqual(bill, &test.expect) {
 			t.Errorf("NewBillfailed expected: %v, received: %v", test.expect, bill)
 		}
