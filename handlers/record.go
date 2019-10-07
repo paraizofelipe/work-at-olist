@@ -81,35 +81,35 @@ func (h *Handler) SaveRecord(record *storage.Record) ErrorResponse {
 	}
 
 	if valid, err := h.recordExist(record); err != nil || !valid {
-		respErr["msg"] = "call already registered"
+		respErr["error"] = "record already saved"
 		return ErrorResponse{http.StatusUnprocessableEntity, respErr}
 	}
 
 	if record.Type == "end" {
 		rs, err := h.DB.GetRecordsByCallId(record.CallId)
 		if err != nil {
-			respErr["msg"] = "failed to register call"
+			respErr["error"] = "failed to save record"
 			return ErrorResponse{http.StatusInternalServerError, respErr}
 		}
 
 		if len(rs) < 1 {
-			respErr["msg"] = "call not started"
+			respErr["error"] = "call not started"
 			return ErrorResponse{http.StatusUnprocessableEntity, respErr}
 		}
 
 		if err := h.DB.CreateRecord(record); err != nil {
-			respErr["msg"] = err.Error()
+			respErr["error"] = err.Error()
 			return ErrorResponse{http.StatusInternalServerError, respErr}
 		}
 
 		err = h.SaveCall(rs[0], *record)
 		if err != nil {
-			respErr["msg"] = err.Error()
+			respErr["error"] = err.Error()
 			return ErrorResponse{http.StatusInternalServerError, respErr}
 		}
 	} else {
 		if err := h.DB.CreateRecord(record); err != nil {
-			respErr["msg"] = err.Error()
+			respErr["error"] = err.Error()
 			return ErrorResponse{http.StatusInternalServerError, respErr}
 		}
 	}
@@ -143,14 +143,16 @@ func (h *Handler) postRecord() http.HandlerFunc {
 		if errs := h.SaveRecord(record); errs.Status != 0 {
 			w.WriteHeader(errs.Status)
 			if err = json.NewEncoder(w).Encode(errs); err != nil {
-				http.Error(w, "failed to register call", http.StatusInternalServerError)
+				http.Error(w, "failed to save record", http.StatusInternalServerError)
 			}
 			return
 		}
 
 		w.WriteHeader(http.StatusCreated)
 
-		if err = json.NewEncoder(w).Encode(record); err != nil {
+		resp := map[string]string{"message": "record successfully saved"}
+
+		if err = json.NewEncoder(w).Encode(resp); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
