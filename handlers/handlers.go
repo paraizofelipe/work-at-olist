@@ -6,7 +6,7 @@ import (
 )
 
 type ErrorResponse struct {
-	Status int
+	Status int                    `json:"-"`
 	Errors map[string]interface{} `json:"errors"`
 }
 
