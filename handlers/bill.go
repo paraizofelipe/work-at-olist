@@ -22,6 +22,7 @@ func (h *Handler) BillsHandler(w http.ResponseWriter, r *http.Request) {
 	router.ServeHTTP(w, r)
 }
 
+// This function only returns bills from closed months.
 func (h *Handler) getBills() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var err error

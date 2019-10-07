@@ -9,6 +9,7 @@ import (
 
 type ValidationMessages map[string]interface{}
 
+// This function validates the integrity of information passed via http request.
 func (h *Handler) validateRecord(r *storage.Record) (bool, ValidationMessages) {
 	var errs = ValidationMessages{}
 	var valid = true
@@ -41,6 +42,7 @@ func (h *Handler) validateRecord(r *storage.Record) (bool, ValidationMessages) {
 	return valid, errs
 }
 
+// This function validates phone numbers.
 func (h *Handler) validatePhone(ph string) bool {
 	if _, err := strconv.Atoi(ph); err != nil {
 		return false
@@ -51,7 +53,8 @@ func (h *Handler) validatePhone(ph string) bool {
 	return true
 }
 
-func (h *Handler) validateRecordExists(r *storage.Record) (bool, error) {
+// This function checks if a record already exists in the database.
+func (h *Handler) recordExist(r *storage.Record) (bool, error) {
 	calls, err := h.DB.GetRecordsByType(r.CallId, r.Type)
 	if err != nil || len(calls) > 0 {
 		return false, err
@@ -68,6 +71,7 @@ func (h *Handler) RecordsHandler(w http.ResponseWriter, r *http.Request) {
 	router.ServeHTTP(w, r)
 }
 
+// This function saves the call start and end records required for the API.
 func (h *Handler) SaveRecord(record *storage.Record) ErrorResponse {
 	respErr := ValidationMessages{}
 
@@ -76,7 +80,7 @@ func (h *Handler) SaveRecord(record *storage.Record) ErrorResponse {
 		return ErrorResponse{http.StatusUnprocessableEntity, respErr}
 	}
 
-	if valid, err := h.validateRecordExists(record); err != nil || !valid {
+	if valid, err := h.recordExist(record); err != nil || !valid {
 		respErr["msg"] = "call already registered"
 		return ErrorResponse{http.StatusUnprocessableEntity, respErr}
 	}
@@ -113,6 +117,7 @@ func (h *Handler) SaveRecord(record *storage.Record) ErrorResponse {
 	return ErrorResponse{Errors: respErr}
 }
 
+// This function captures all call register POST requests.
 func (h *Handler) postRecord() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var err error

@@ -11,6 +11,7 @@ type Call struct {
 	*storage.Call
 }
 
+// This function checks if the entered time is between 06:00 AM and 10:00 PM.
 func (h *Handler) callInTimeRange(check time.Time) bool {
 	start := time.Date(check.Year(), check.Month(), check.Day(), 5, 59, 59, 0, time.UTC)
 	end := time.Date(check.Year(), check.Month(), check.Day(), 22, 1, 0, 0, time.UTC)
@@ -18,6 +19,7 @@ func (h *Handler) callInTimeRange(check time.Time) bool {
 	return check.After(start) && check.Before(end)
 }
 
+//This function calculate beginning and the endind of the call
 func (h *Handler) calculateCallTime(dateStart, dateEnd time.Time) (float64, error) {
 	var hour int
 	var start, end time.Time
@@ -51,6 +53,7 @@ func (h *Handler) calculateCallTime(dateStart, dateEnd time.Time) (float64, erro
 	return rst, nil
 }
 
+// This function persists database calls.
 func (h *Handler) SaveCall(rs, re storage.Record) error {
 
 	dateStart, err := time.Parse(time.RFC3339, rs.Timestamp)
@@ -97,7 +100,7 @@ func (h *Handler) SaveCall(rs, re storage.Record) error {
 			return err
 		}
 
-		//TODO set price of bill before after create
+		//TODO set price of bill after create
 		err = h.DB.ChangePrice(int(bid), bill.Price+cc)
 		if err != nil {
 			return err
