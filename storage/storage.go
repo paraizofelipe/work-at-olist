@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -83,4 +84,16 @@ func (db *DB) InitSchema() {
 	db.billSchema()
 	db.callSchema()
 	db.recordSchema()
+}
+
+func (db *DB) CleanDatabase() {
+	if _, err := db.Exec(`DROP TABLE IF EXISTS bill`); err != nil {
+		log.Fatal(err)
+	}
+	if _, err := db.Exec(`DROP TABLE IF EXISTS call`); err != nil {
+		log.Fatal(err)
+	}
+	if _, err := db.Exec(`DROP TABLE IF EXISTS record`); err != nil {
+		log.Fatal(err)
+	}
 }

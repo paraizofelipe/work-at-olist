@@ -33,15 +33,18 @@ func makeRequest(t *testing.T, method string, url string, body io.Reader, header
 }
 
 func init() {
+
 	logger := log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
 
-	db, err := storage.NewDB("sqlite3", "./test.db")
+	db, err := storage.NewDB("sqlite3", "../test.db")
 	if err != nil {
 		logger.Fatal(err)
 	}
 
 	DB = db.DB
 
+	db.CleanDatabase()
 	db.InitSchema()
+
 	h = New(db, logger)
 }
