@@ -81,35 +81,35 @@ func (h *Handler) SaveRecord(record *storage.Record) ErrorResponse {
 	}
 
 	if valid, err := h.recordExist(record); err != nil || !valid {
-		respErr["error"] = "record already saved"
+		respErr["message"] = "record already saved"
 		return ErrorResponse{http.StatusUnprocessableEntity, respErr}
 	}
 
 	if record.Type == "end" {
 		rs, err := h.DB.GetRecordsByCallId(record.CallId)
 		if err != nil {
-			respErr["error"] = "failed to save record"
+			respErr["message"] = "failed to save record"
 			return ErrorResponse{http.StatusInternalServerError, respErr}
 		}
 
 		if len(rs) < 1 {
-			respErr["error"] = "call not started"
+			respErr["message"] = "call not started"
 			return ErrorResponse{http.StatusUnprocessableEntity, respErr}
 		}
 
 		if err := h.DB.CreateRecord(record); err != nil {
-			respErr["error"] = err.Error()
+			respErr["message"] = err.Error()
 			return ErrorResponse{http.StatusInternalServerError, respErr}
 		}
 
 		err = h.SaveCall(rs[0], *record)
 		if err != nil {
-			respErr["error"] = err.Error()
+			respErr["message"] = err.Error()
 			return ErrorResponse{http.StatusInternalServerError, respErr}
 		}
 	} else {
 		if err := h.DB.CreateRecord(record); err != nil {
-			respErr["error"] = err.Error()
+			respErr["message"] = err.Error()
 			return ErrorResponse{http.StatusInternalServerError, respErr}
 		}
 	}
@@ -140,9 +140,9 @@ func (h *Handler) postRecord() http.HandlerFunc {
 
 		record := storage.NewRecord(body.Type, body.Timestamp, body.CallId, body.Source, body.Destination)
 
-		if errs := h.SaveRecord(record); errs.Status != 0 {
-			w.WriteHeader(errs.Status)
-			if err = json.NewEncoder(w).Encode(errs); err != nil {
+		if errResp := h.SaveRecord(record); errResp.Status != 0 {
+			w.WriteHeader(errResp.Status)
+			if err = json.NewEncoder(w).Encode(errResp); err != nil {
 				http.Error(w, "failed to save record", http.StatusInternalServerError)
 			}
 			return

@@ -22,6 +22,51 @@ func (h *Handler) BillsHandler(w http.ResponseWriter, r *http.Request) {
 	router.ServeHTTP(w, r)
 }
 
+func (h *Handler) SearchBill(subscriber string, month, year int64) (storage.Bill, ErrorResponse) {
+	var err error
+	var bill storage.Bill
+
+	respErr := ValidationMessages{}
+
+	now := time.Now()
+	if now.Year() == int(year) && int(now.Month()) == int(month) {
+		month = month - 1
+	}
+
+	bill, err = h.DB.GetBillByPeriod(subscriber, int(month), int(year))
+	if err != nil {
+		respErr["message"] = err.Error()
+		return bill, ErrorResponse{http.StatusInternalServerError, respErr}
+	}
+
+	if bill.Id == 0 {
+		respErr["message"] = "bill not found"
+		return bill, ErrorResponse{http.StatusNotFound, respErr}
+	}
+
+	return bill, ErrorResponse{Errors: respErr}
+}
+
+func (h *Handler) ExtractTime(p url.Values) (error, int64, int64) {
+	var err error
+	var month, year int64
+
+	if val, ok := p["month"]; ok {
+		month, err = strconv.ParseInt(val[0], 10, 64)
+		if err != nil {
+			return err, 0, 0
+		}
+	}
+	if val, ok := p["year"]; ok {
+		year, err = strconv.ParseInt(val[0], 10, 64)
+		if err != nil {
+			return err, 0, 0
+		}
+	}
+
+	return err, month, year
+}
+
 // This function only returns bills from closed months.
 func (h *Handler) getBills() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -33,40 +78,50 @@ func (h *Handler) getBills() http.HandlerFunc {
 
 		subscriber, _ := ctx.Value("subscriber").(string)
 
-		p, _ := url.ParseQuery(r.URL.RawQuery)
-		if val, ok := p["month"]; ok {
-			month, err = strconv.ParseInt(val[0], 10, 64)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
-		if val, ok := p["year"]; ok {
-			year, err = strconv.ParseInt(val[0], 10, 64)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
+		q, _ := url.ParseQuery(r.URL.RawQuery)
+		err, month, year = h.ExtractTime(q)
+		//if val, ok := p["month"]; ok {
+		//	month, err = strconv.ParseInt(val[0], 10, 64)
+		//	if err != nil {
+		//		http.Error(w, err.Error(), http.StatusInternalServerError)
+		//		return
+		//	}
+		//}
+		//if val, ok := p["year"]; ok {
+		//	year, err = strconv.ParseInt(val[0], 10, 64)
+		//	if err != nil {
+		//		http.Error(w, err.Error(), http.StatusInternalServerError)
+		//		return
+		//	}
+		//}
 
-		now := time.Now()
-		if now.Year() == int(year) && int(now.Month()) == int(month) {
-			month = month - 1
-		}
-
-		bill, err := h.DB.GetBillByPeriod(subscriber, int(month), int(year))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		bill, errResp := h.SearchBill(subscriber, month, year)
+		if errResp.Status != 0 {
+			w.WriteHeader(errResp.Status)
+			if err = json.NewEncoder(w).Encode(errResp); err != nil {
+				http.Error(w, "failed to save record", http.StatusInternalServerError)
+			}
 			return
 		}
+		//now := time.Now()
+		//if now.Year() == int(year) && int(now.Month()) == int(month) {
+		//	month = month - 1
+		//}
+		//
+		//bill, err := h.DB.GetBillByPeriod(subscriber, int(month), int(year))
+		//if err != nil {
+		//	http.Error(w, err.Error(), http.StatusInternalServerError)
+		//	return
+		//}
+		//
+		//if bill.Id == 0 {
+		//	http.Error(w, "bill not found", http.StatusNotFound)
+		//	return
+		//}
 
-		if bill.Id == 0 {
-			http.Error(w, "bill not found", http.StatusNotFound)
-			return
-		}
+		w.WriteHeader(http.StatusOK)
 
-		err = json.NewEncoder(w).Encode(bill)
-		if err != nil {
+		if err := json.NewEncoder(w).Encode(bill); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 

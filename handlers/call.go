@@ -44,13 +44,13 @@ func (h *Handler) calculateCallTime(dateStart, dateEnd time.Time) (float64, erro
 		end = dateEnd
 	}
 
-	du := end.Sub(start)
-	x := math.Floor(du.Hours()/24) * (8 * 60)
+	duration := end.Sub(start)
+	rangeTime := math.Floor(duration.Hours()/24) * (8 * 60)
 
-	t := float64(int(du.Minutes()) - int(x))
-	rst := math.Round((t*0.09+0.36)*100) / 100
+	t := float64(int(duration.Minutes()) - int(rangeTime))
+	result := math.Round((t*0.09+0.36)*100) / 100
 
-	return rst, nil
+	return result, nil
 }
 
 // This function persists database calls.
