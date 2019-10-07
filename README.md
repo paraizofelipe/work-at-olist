@@ -5,17 +5,18 @@ This project aims to develop a Rest API to control phone call records and genera
 # Getting Started
 
 These instructions will provide you a copy of the project that can be run on your local machine for development and testing purposes.
-Consult deployment item for notes on how to deploy the project on a live system.
+Consult [deployment](#deployment) item for notes on how to deploy the project on a live system.
 
 # Prerequisites
 
-This package is built with go1.13, and all you need is provided with the go standard library.
+This package is built with go1.13, and all you need is provide with the go standard library.
 
 # Installing
 
 This is what you need to install the application from the source code:
 
 ```shell script
+    git clone https://github.com/paraizofelipe/work-at-olist.git
     go install
 ```
 
@@ -106,16 +107,61 @@ Run with Makefile:
 }
 ```
 
-## GET - /api/bills/:subscriber?month=1&year=2019
+## GET - /api/bills/
 
+#### Path params
 
+/api/bills/\<subscriber\>
 
+| param      | type   | example     |
+|------------|--------|-------------|
+| subscriber | number | 41991233821 |
+
+#### Query string
+
+| query | type   | example |
+|-------|--------|---------|
+| year  | number | 2019    |
+| month | number | 05      |
+
+### Body of response
+
+**Status**: 200
+
+```json
+{
+  "subscriber": "99988526423",
+  "month": 2,
+  "year": 2016,
+  "calls": [
+    {
+      "bill_id": 1,
+      "destination": "9933468278",
+      "duration": "2h0m0s",
+      "start_date": "2016-02-29",
+      "start_time": "12:0:0",
+      "price": 11.16
+    }
+  ],
+  "price": 11.16
+}
+```
+ **Status**: 404
+ 
+ ```json
+{
+     "errors": {
+         "message": "bills not found"
+     }
+}
+ ```
 
 # Built With
 
-[go](https://golang.org/) - The GO programing language.
-
-[go-sqlite3](https://github.com/mattn/go-sqlite3) - driver for sqlite3 database 
+* [Arch linux](https://www.archlinux.org/) - Operational sistem
+* [Neovim](https://neovim.io/)  - Editor Text
+* [go](https://golang.org/) - The GO programing language.
+* [go-sqlite3](https://github.com/mattn/go-sqlite3) - Driver for sqlite3 database 
 
 # Versioning
 
@@ -124,3 +170,4 @@ This project use SemVer for versioning. For the versions available, see the tags
 # Authors
 
 Felipe Paraizo - Initial work - [paraizo](http://paraizo.dev)
+
