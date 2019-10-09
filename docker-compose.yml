@@ -1,0 +1,18 @@
+---
+version: "3.0"
+services:
+    olist-call:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: olist-call_img:latest
+        environment:
+            PORT: 8989
+        ports:
+            - "8989:8989"
+        networks:
+            - olist_net
+networks:
+    olist_net:
+        driver: bridge
+
